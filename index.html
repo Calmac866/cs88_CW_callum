@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UHRI Natural Language Search</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #16202a;
+      --muted: #5c6b7a;
+      --border: #dce3ec;
+      --accent: #0f52ba;
+      --accent-hover: #0b3f8f;
+      --chip-bg: #edf3fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem 3.5rem;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.65rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 1.4rem;
+      font-size: 0.96rem;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+    }
+
+    .search-row input {
+      flex: 1;
+      padding: 0.75rem 0.9rem;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #eef2f6;
+      color: var(--text);
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #e1e8f0;
+    }
+
+    button.small {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.82rem;
+      border-radius: 6px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 0.85rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .quick-filter {
+      padding: 0.35rem 0.55rem;
+      font-size: 0.82rem;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      margin-bottom: 0.15rem;
+    }
+
+    select, input[type="number"] {
+      padding: 0.55rem 0.65rem;
+      font-size: 0.92rem;
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .active-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .chip {
+      background: var(--chip-bg);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    #status {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 0.85rem;
+    }
+
+    .result {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 0.85rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .result.active-item {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(15, 82, 186, 0.12);
+    }
+
+    .result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.55rem;
+    }
+
+    .score {
+      background: var(--chip-bg);
+      color: var(--accent);
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+
+    .result-text {
+      margin: 0;
+      font-size: 0.97rem;
+      color: var(--text);
+    }
+
+    .doc-links-box {
+      margin-top: 0.65rem;
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .doc-links-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .doc-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem 1rem;
+    }
+
+    .doc-links-card a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .doc-links-card a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>UN Human Rights Recommendations Search</h1>
+  <p class="subtitle">Search in plain English, filter by readable names, and look up linked source documents.</p>
+
+  <form id="search-form" class="panel">
+    <div class="search-row">
+      <input
+        id="query"
+        type="text"
+        data-track="Input: Search Query"
+        placeholder="Ask or describe what you're looking for (e.g., juvenile justice, affordable childcare, freedom of expression)..."
+        required
+      />
+      <button type="submit" data-track="Button: Search">Search</button>
+    </div>
+
+    <div class="filters-grid">
+      <label>
+        Mechanism
+        <select id="mechanismSelect" data-track="Filter: Mechanism"></select>
+      </label>
+
+      <label>
+        Country
+        <input id="countrySearch" class="quick-filter" type="text" data-track="Input: Country Quick Filter" placeholder="Type to filter countries..." />
+        <select id="countrySelect" data-track="Filter: Country">
+          <option value="">All countries</option>
+        </select>
+      </label>
+
+      <label>
+        Affected Group / People
+        <input id="groupSearch" class="quick-filter" type="text" data-track="Input: Group Quick Filter" placeholder="Type to filter groups..." />
+        <select id="groupSelect" data-track="Filter: Affected Group">
+          <option value="">All affected groups</option>
+        </select>
+      </label>
+
+      <label>
+        Human Rights Theme
+        <input id="themeSearch" class="quick-filter" type="text" data-track="Input: Theme Quick Filter" placeholder="Type to filter themes..." />
+        <select id="themeSelect" data-track="Filter: Theme">
+          <option value="">All themes</option>
+        </select>
+      </label>
+
+      <label>
+        Sustainable Development Goal (SDG)
+        <select id="sdgSelect" data-track="Filter: SDG">
+          <option value="">All SDGs</option>
+        </select>
+      </label>
+
+      <label>
+        Language &amp; Results
+        <div style="display: flex; gap: 0.5rem;">
+          <select id="culture" data-track="Filter: Language" style="flex: 1;">
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="ar">Arabic</option>
+            <option value="ru">Russian</option>
+            <option value="zh">Chinese</option>
+          </select>
+          <input id="top_k" type="number" min="1" max="40" value="10" data-track="Input: Max Results" title="Max results to display" style="width: 78px;" />
+        </div>
+      </label>
+    </div>
+
+    <input id="currentRecoDisplayed" type="hidden" value="0" />
+
+    <div class="toolbar">
+      <div class="pager">
+        <button type="button" id="prev-page" class="secondary" data-track="Button: Previous Batch">Previous Batch</button>
+        <button type="button" id="next-page" class="secondary" data-track="Button: Next Batch">Next Batch</button>
+        <span id="batch-label">Batch starting at 0</span>
+      </div>
+      <button type="button" id="reset-btn" class="secondary" data-track="Button: Reset Filters">Reset Filters</button>
+    </div>
+  </form>
+
+  <div id="active-filters" class="active-filters"></div>
+  <div id="status"></div>
+  <div id="results"></div>
+
+  <script>
+    const FALLBACK_MECHANISM_ID = "b2b5b669-1405-419d-8603-7826b15d69e1";
+
+    const state = {
+      filtersCache: {
+        countries: [],
+        affectedPersons: [],
+        themes: [],
+        sdGs: [],
+        mechanisms: [],
+      },
+    };
+
+    const docInfoCache = new Map();
+
+    // User testing and telemitary tracker
+    const telemetry = {
+      sessionId: sessionStorage.getItem("uhri_test_session") || crypto.randomUUID(),
+      clickCount: Number(sessionStorage.getItem("uhri_test_clicks") || 0),
+      activeTarget: "Page View",
+      activeMetadata: {},
+      segmentStartMs: document.visibilityState === "visible" ? performance.now() : null,
+      accumulatedMs: 0,
+    };
+    sessionStorage.setItem("uhri_test_session", telemetry.sessionId);
+
+    function currentLingerMs() {
+      const running = telemetry.segmentStartMs !== null ? performance.now() - telemetry.segmentStartMs : 0;
+      return Math.round(telemetry.accumulatedMs + running);
+    }
+
+    function sendTelemetryEvent(payload, useBeacon = false) {
+      const body = JSON.stringify({
+        sessionId: telemetry.sessionId,
+        clickCount: telemetry.clickCount,
+        ...payload,
+      });
+
+      if (useBeacon && navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "application/json" });
+        navigator.sendBeacon("/api/telemetry", blob);
+        return;
+      }
+
+      fetch("/api/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+
+    function flushLinger(nextTarget = null, nextMetadata = {}, useBeacon = false) {
+      const elapsed = currentLingerMs();
+      if (elapsed >= 250 && telemetry.activeTarget) {
+        sendTelemetryEvent(
+          {
+            eventType: "linger",
+            target: telemetry.activeTarget,
+            lingerMs: elapsed,
+            metadata: telemetry.activeMetadata,
+          },
+          useBeacon
+        );
+      }
+
+      telemetry.accumulatedMs = 0;
+      telemetry.segmentStartMs = document.visibilityState === "visible" ? performance.now() : null;
+
+      if (nextTarget !== null) {
+        telemetry.activeTarget = nextTarget;
+        telemetry.activeMetadata = nextMetadata;
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        if (telemetry.segmentStartMs !== null) {
+          telemetry.accumulatedMs += performance.now() - telemetry.segmentStartMs;
+          telemetry.segmentStartMs = null;
+        }
+        flushLinger(null, {}, true);
+      } else if (telemetry.segmentStartMs === null) {
+        telemetry.segmentStartMs = performance.now();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      flushLinger(null, {}, true);
+    });
+
+    function describeClickTarget(el) {
+      const tracked = el.closest("[data-track]");
+      if (tracked) {
+        return {
+          label: tracked.dataset.track,
+          meta: {
+            annotationId: tracked.dataset.annId || undefined,
+            documentId: tracked.dataset.docId || undefined,
+            symbol: tracked.dataset.symbol || undefined,
+            rank: tracked.dataset.rank ? Number(tracked.dataset.rank) : undefined,
+          },
+        };
+      }
+
+      const link = el.closest("a");
+      if (link) {
+        return {
+          label: `Link: ${link.textContent.trim().slice(0, 60) || link.href}`,
+          meta: { href: link.href },
+        };
+      }
+
+      const card = el.closest(".result");
+      if (card) {
+        return {
+          label: `Result Card: ${card.dataset.symbol || card.dataset.annId || "Item"}`,
+          meta: {
+            annotationId: card.dataset.annId,
+            documentId: card.dataset.docId,
+            symbol: card.dataset.symbol,
+            rank: Number(card.dataset.rank),
+          },
+        };
+      }
+
+      const tag = el.tagName ? el.tagName.toLowerCase() : "unknown";
+      const text = (el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40);
+      return {
+        label: text ? `${tag}: ${text}` : tag,
+        meta: {},
+      };
+    }
+
+    document.addEventListener("click", (e) => {
+      telemetry.clickCount += 1;
+      sessionStorage.setItem("uhri_test_clicks", String(telemetry.clickCount));
+
+      const { label, meta } = describeClickTarget(e.target);
+
+      sendTelemetryEvent({
+        eventType: "click",
+        target: label,
+        metadata: meta,
+      });
+
+      const clickedCard = e.target.closest(".result");
+      if (clickedCard) {
+        document.querySelectorAll(".result.active-item").forEach((c) => c.classList.remove("active-item"));
+        clickedCard.classList.add("active-item");
+        const focusLabel = `Result #${clickedCard.dataset.rank}: ${clickedCard.dataset.symbol || clickedCard.dataset.annId}`;
+        if (telemetry.activeTarget !== focusLabel) {
+          flushLinger(focusLabel, {
+            annotationId: clickedCard.dataset.annId,
+            documentId: clickedCard.dataset.docId,
+            symbol: clickedCard.dataset.symbol,
+            rank: Number(clickedCard.dataset.rank),
+          });
+        }
+      }
+    });
+
+    //  Search Logic 
+    const form = document.getElementById("search-form");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const activeFiltersEl = document.getElementById("active-filters");
+    const offsetInput = document.getElementById("currentRecoDisplayed");
+    const batchLabel = document.getElementById("batch-label");
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function formatDate(isoStr) {
+      if (!isoStr) return "Unknown date";
+      const d = new Date(isoStr);
+      return Number.isNaN(d.getTime()) ? isoStr : d.toLocaleDateString();
+    }
+
+    function buildUnDocsUrl(symbol, culture) {
+      const cleanSymbol = String(symbol || "").trim();
+      if (!cleanSymbol) return "";
+      const lang = ["en", "es", "fr", "ar", "ru", "zh"].includes(culture) ? culture : "en";
+      const encodedPath = cleanSymbol
+        .split("/")
+        .map((part) => encodeURIComponent(part))
+        .join("/");
+      return `https://docs.un.org/${lang}/${encodedPath}`;
+    }
+
+    function buildUhriPortalUrl(culture) {
+      const lang = ["en", "es", "fr", "ar", "ru", "zh"].includes(culture) ? culture : "en";
+      return `https://uhri.ohchr.org/${lang}/search-recommendations`;
+    }
+
+    function updateBatchLabel() {
+      const offset = Math.max(0, Number(offsetInput.value) || 0);
+      batchLabel.textContent = `Batch starting at ${offset}`;
+    }
+
+    function populateSelect(selectEl, items, defaultLabel, filterText = "") {
+      const prevVal = selectEl.value;
+      const needle = filterText.trim().toLowerCase();
+
+      const filtered = items.filter((item) => {
+        if (item.selectable === false) return false;
+        const label = (item.text || "").toLowerCase();
+        return !needle || label.includes(needle);
+      });
+
+      selectEl.innerHTML =
+        `<option value="">${escapeHtml(defaultLabel)}</option>` +
+        filtered
+          .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.text)}</option>`)
+          .join("");
+
+      if ([...selectEl.options].some((o) => o.value === prevVal)) {
+        selectEl.value = prevVal;
+      }
+    }
+
+    function populateMechanisms(mechanisms) {
+      const mechSelect = document.getElementById("mechanismSelect");
+      const selectable = mechanisms.filter((m) => m.selectable !== false);
+
+      if (selectable.length === 0) {
+        mechSelect.innerHTML = `<option value="${FALLBACK_MECHANISM_ID}">Universal Periodic Review (UPR)</option>`;
+        return;
+      }
+
+      mechSelect.innerHTML = selectable
+        .map((m) => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.text)}</option>`)
+        .join("");
+
+      if ([...mechSelect.options].some((o) => o.value === FALLBACK_MECHANISM_ID)) {
+        mechSelect.value = FALLBACK_MECHANISM_ID;
+      }
+    }
+
+    async function loadFilterOptions() {
+      const culture = document.getElementById("culture").value;
+      try {
+        const res = await fetch(`/api/filters?culture=${encodeURIComponent(culture)}`);
+        if (!res.ok) throw new Error(`FilterList failed (${res.status})`);
+        const data = await res.json();
+
+        state.filtersCache = {
+          countries: data.countries || [],
+          affectedPersons: data.affectedPersons || [],
+          themes: data.themes || [],
+          sdGs: data.sdGs || [],
+          mechanisms: data.mechanisms || [],
+        };
+
+        populateMechanisms(state.filtersCache.mechanisms);
+        populateSelect(
+          document.getElementById("countrySelect"),
+          state.filtersCache.countries,
+          "All countries",
+          document.getElementById("countrySearch").value
+        );
+        populateSelect(
+          document.getElementById("groupSelect"),
+          state.filtersCache.affectedPersons,
+          "All affected groups",
+          document.getElementById("groupSearch").value
+        );
+        populateSelect(
+          document.getElementById("themeSelect"),
+          state.filtersCache.themes,
+          "All themes",
+          document.getElementById("themeSearch").value
+        );
+        populateSelect(
+          document.getElementById("sdgSelect"),
+          state.filtersCache.sdGs,
+          "All SDGs"
+        );
+      } catch (err) {
+        populateMechanisms([]);
+        statusEl.textContent = `Note: Could not load filter lists (${err.message}). You can still run natural language searches.`;
+      }
+    }
+
+    function getSelectedText(selectId) {
+      const sel = document.getElementById(selectId);
+      if (!sel.value) return "";
+      return sel.options[sel.selectedIndex]?.text || "";
+    }
+
+    function renderActiveChips() {
+      const labels = [
+        getSelectedText("countrySelect") && `Country: ${getSelectedText("countrySelect")}`,
+        getSelectedText("groupSelect") && `Group: ${getSelectedText("groupSelect")}`,
+        getSelectedText("themeSelect") && `Theme: ${getSelectedText("themeSelect")}`,
+        getSelectedText("sdgSelect") && `SDG: ${getSelectedText("sdgSelect")}`,
+      ].filter(Boolean);
+
+      activeFiltersEl.innerHTML = labels
+        .map((txt) => `<span class="chip">${escapeHtml(txt)}</span>`)
+        .join("");
+    }
+
+    async function runSearch() {
+      const query = document.getElementById("query").value.trim();
+      const mechanismId = document.getElementById("mechanismSelect").value || FALLBACK_MECHANISM_ID;
+      if (!query) return;
+
+      renderActiveChips();
+      updateBatchLabel();
+
+      const countryId = document.getElementById("countrySelect").value;
+      const groupId = document.getElementById("groupSelect").value;
+      const themeId = document.getElementById("themeSelect").value;
+      const sdgId = document.getElementById("sdgSelect").value;
+
+      const payload = {
+        query,
+        mechanismId,
+        culture: document.getElementById("culture").value,
+        top_k: Number(document.getElementById("top_k").value) || 10,
+        currentRecoDisplayed: Math.max(0, Number(offsetInput.value) || 0),
+        countries: countryId ? [countryId] : [],
+        affectedPersons: groupId ? [groupId] : [],
+        themes: themeId ? [themeId] : [],
+        sdgs: sdgId ? [sdgId] : [],
+      };
+
+      flushLinger(`Search Results: "${query}"`, {
+        query,
+        offset: payload.currentRecoDisplayed,
+        country: getSelectedText("countrySelect") || null,
+        group: getSelectedText("groupSelect") || null,
+        theme: getSelectedText("themeSelect") || null,
+        sdg: getSelectedText("sdgSelect") || null,
+      });
+
+      statusEl.textContent = "Searching recommendations and ranking matches...";
+      resultsEl.innerHTML = "";
+
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || `Search failed (${res.status})`);
+        }
+
+        statusEl.textContent =
+          `Found ${data.count} ranked match(es) from ${data.corpusSize} fetched recommendations.`;
+
+        if (!data.results || data.results.length === 0) {
+          resultsEl.innerHTML =
+            `<div class="result"><p class="result-text">No recommendations in this batch matched "${escapeHtml(query)}". Try broader keywords or click Next Batch.</p></div>`;
+          return;
+        }
+
+        resultsEl.innerHTML = data.results
+          .map(
+            (item, idx) => `
+              <article
+                class="result"
+                data-rank="${idx + 1}"
+                data-ann-id="${escapeHtml(item.id)}"
+                data-doc-id="${escapeHtml(item.documentId || "")}"
+                data-symbol="${escapeHtml(item.symbol || "")}"
+              >
+                <div class="result-meta">
+                  <span class="score">#${idx + 1} · Relevance: ${escapeHtml(item.score)}</span>
+                  <span><strong>Document:</strong> ${escapeHtml(item.symbol || "N/A")}</span>
+                  <span><strong>Published:</strong> ${escapeHtml(formatDate(item.publicationDate))}</span>
+                  <button
+                    type="button"
+                    class="secondary small doc-link-btn"
+                    data-track="Button: Document Details (${escapeHtml(item.symbol || item.id)})"
+                    data-rank="${idx + 1}"
+                    data-ann-id="${escapeHtml(item.id)}"
+                    data-doc-id="${escapeHtml(item.documentId || "")}"
+                    data-symbol="${escapeHtml(item.symbol || "")}"
+                    ${item.documentId ? "" : "disabled"}
+                  >
+                    Source Document
+                  </button>
+                </div>
+                <p class="result-text">${escapeHtml(item.text)}</p>
+                <div class="doc-links-box" data-open="false"></div>
+              </article>
+            `
+          )
+          .join("");
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    resultsEl.addEventListener("click", async (e) => {
+      const copyBtn = e.target.closest(".copy-symbol-btn");
+      if (copyBtn) {
+        const symbol = copyBtn.dataset.symbol || "";
+        if (symbol && navigator.clipboard) {
+          try {
+            await navigator.clipboard.writeText(symbol);
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => {
+              copyBtn.textContent = originalText;
+            }, 1500);
+          } catch {}
+        }
+        return;
+      }
+
+      const btn = e.target.closest(".doc-link-btn");
+      if (!btn) return;
+
+      const docId = btn.dataset.docId;
+      const fallbackSymbol = btn.dataset.symbol || "";
+      const card = btn.closest(".result");
+      const box = card?.querySelector(".doc-links-box");
+      if (!docId || !box) return;
+
+      const culture = document.getElementById("culture").value;
+      const cacheKey = `${docId}:${culture}`;
+
+      if (box.dataset.open === "true") {
+        box.innerHTML = "";
+        box.dataset.open = "false";
+        return;
+      }
+
+      box.textContent = "Loading source document details...";
+      box.dataset.open = "true";
+
+      try {
+        let info = docInfoCache.get(cacheKey);
+        if (!info) {
+          const res = await fetch(`/api/document/${encodeURIComponent(docId)}?culture=${encodeURIComponent(culture)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || `Document lookup failed (${res.status})`);
+          info = data;
+          docInfoCache.set(cacheKey, info);
+        }
+
+        const symbol = (info.symbol || fallbackSymbol || "").trim();
+        const unDocsUrl = buildUnDocsUrl(symbol, culture);
+        const uhriPortalUrl = buildUhriPortalUrl(culture);
+        const availableLangs = Array.isArray(info.languages)
+          ? [...new Set(info.languages.map((f) => f.language).filter(Boolean))].join(", ")
+          : "";
+
+        box.innerHTML = `
+          <div class="doc-links-card">
+            <div><strong>${escapeHtml(info.title || symbol || "UN Document")}</strong></div>
+            <div style="font-size: 0.83rem; color: var(--muted);">
+              <strong>UN Symbol:</strong> <code>${escapeHtml(symbol || "N/A")}</code>
+              ${availableLangs ? ` · <strong>Languages:</strong> ${escapeHtml(availableLangs)}` : ""}
+            </div>
+            <div class="doc-actions">
+              ${
+                unDocsUrl
+                  ? `<a href="${escapeHtml(unDocsUrl)}" target="_blank" rel="noopener noreferrer" data-track="Document Lookup: UN Docs (${escapeHtml(symbol)})">Open on UN Official Documents (docs.un.org)</a>`
+                  : ""
+              }
+              <a href="${escapeHtml(uhriPortalUrl)}" target="_blank" rel="noopener noreferrer" data-track="Document Lookup: UHRI Portal (${escapeHtml(symbol || docId)})">Search in UHRI Portal</a>
+              ${
+                symbol
+                  ? `<button type="button" class="secondary small copy-symbol-btn" data-symbol="${escapeHtml(symbol)}" data-track="Button: Copy Symbol (${escapeHtml(symbol)})">Copy Symbol</button>`
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        box.innerHTML = `<div class="doc-links-card">Could not load document details: ${escapeHtml(err.message)}</div>`;
+      }
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      offsetInput.value = "0";
+      runSearch();
+    });
+
+    document.getElementById("culture").addEventListener("change", loadFilterOptions);
+
+    document.getElementById("countrySearch").addEventListener("input", (e) => {
+      populateSelect(
+        document.getElementById("countrySelect"),
+        state.filtersCache.countries,
+        "All countries",
+        e.target.value
+      );
+    });
+
+    document.getElementById("groupSearch").addEventListener("input", (e) => {
+      populateSelect(
+        document.getElementById("groupSelect"),
+        state.filtersCache.affectedPersons,
+        "All affected groups",
+        e.target.value
+      );
+    });
+
+    document.getElementById("themeSearch").addEventListener("input", (e) => {
+      populateSelect(
+        document.getElementById("themeSelect"),
+        state.filtersCache.themes,
+        "All themes",
+        e.target.value
+      );
+    });
+
+    document.getElementById("prev-page").addEventListener("click", () => {
+      const current = Math.max(0, Number(offsetInput.value) || 0);
+      offsetInput.value = String(Math.max(0, current - 40));
+      updateBatchLabel();
+      if (document.getElementById("query").value.trim()) runSearch();
+    });
+
+    document.getElementById("next-page").addEventListener("click", () => {
+      const current = Math.max(0, Number(offsetInput.value) || 0);
+      offsetInput.value = String(current + 40);
+      updateBatchLabel();
+      if (document.getElementById("query").value.trim()) runSearch();
+    });
+
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      ["countrySelect", "groupSelect", "themeSelect", "sdgSelect"].forEach((id) => {
+        document.getElementById(id).value = "";
+      });
+      ["countrySearch", "groupSearch", "themeSearch"].forEach((id) => {
+        document.getElementById(id).value = "";
+      });
+      populateSelect(document.getElementById("countrySelect"), state.filtersCache.countries, "All countries");
+      populateSelect(document.getElementById("groupSelect"), state.filtersCache.affectedPersons, "All affected groups");
+      populateSelect(document.getElementById("themeSelect"), state.filtersCache.themes, "All themes");
+      offsetInput.value = "0";
+      renderActiveChips();
+      updateBatchLabel();
+    });
+
+    updateBatchLabel();
+    loadFilterOptions();
+  </script>
+</body>
+</html>
