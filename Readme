@@ -1,0 +1,4 @@
+use the pip install below to install the required 3rd party dependcies
+pip install fastapi uvicorn httpx pydantic
+then use the below command to run the system make sure the html and .py file are in the same folder as the pip install
+ py -m uvicorn IR_system:app --reload
